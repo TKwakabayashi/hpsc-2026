@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include <omp.h>
 
 void merge(std::vector<int>& vec, int begin, int mid, int end) {
   std::vector<int> tmp(end-begin+1);
@@ -20,12 +21,21 @@ void merge(std::vector<int>& vec, int begin, int mid, int end) {
     vec[begin++] = tmp[i];
 }
 
-void merge_sort(std::vector<int>& vec, int begin, int end) {
+void merge_sort(std::vector<int>& vec, int begin, int end, int depth) {
   if(begin < end) {
     int mid = (begin + end) / 2;
-    merge_sort(vec, begin, mid);
-    merge_sort(vec, mid+1, end);
-    merge(vec, begin, mid, end);
+    if (depth > 0) {
+      #pragma omp task
+      merge_sort(vec, begin, mid, depth-1);
+      #pragma omp task
+      merge_sort(vec, mid+1, end, depth-1);
+      #pragma omp taskwait
+      merge(vec, begin, mid, end);
+    } else {
+      merge_sort(vec, begin, mid, 0);
+      merge_sort(vec, mid+1, end, 0);
+      merge(vec, begin, mid, end);
+    }
   }
 }
 
@@ -37,7 +47,16 @@ int main() {
     printf("%d ",vec[i]);
   }
   printf("\n");
-  merge_sort(vec, 0, n-1);
+
+  int max_thread = omp_get_max_threads();
+  int max_depth = 0;
+  while ((1 << max_depth) < max_thread) max_depth++;
+  #pragma omp parallel
+  {
+    #pragma omp single
+    merge_sort(vec, 0, n-1, max_depth);
+  }
+
   for (int i=0; i<n; i++) {
     printf("%d ",vec[i]);
   }
