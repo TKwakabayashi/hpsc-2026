@@ -209,7 +209,7 @@ int main(int argc, const char **argv) {
     size_t shmem = (size_t)(A_TOTAL + 2 * B_STAGE) * sizeof(half);
     cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     for (int i = 0; i < NUM_ITER+NUM_WARMUP; i++) {
-        if (i == 2) tic = chrono::steady_clock::now();
+        if (i == NUM_WARMUP) tic = chrono::steady_clock::now();
             f2h<<<((size_t)m*k + 255)/256, 256>>>(A, Ah, (size_t)m*k);
             f2h<<<((size_t)k*n + 255)/256, 256>>>(B, Bh, (size_t)k*n);
             kernel<<< grid, block, shmem>>>(m,
